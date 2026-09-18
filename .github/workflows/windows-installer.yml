@@ -5,6 +5,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write   # нужно, чтобы прикладывать установщик к релизу
+
 jobs:
   build:
     runs-on: windows-latest
