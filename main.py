@@ -20,41 +20,6 @@ def load_fonts():
         QFontDatabase.addApplicationFont(str(ttf))
 
 
-THEMES = ("glass", "editor")
-
-
-class App:
-    """Держит текущее окно и пересоздаёт его при смене темы, сохраняя параметры."""
-
-    def __init__(self, app: QApplication, variant: str):
-        self.app = app
-        self.win: MainWindow | None = None
-        self.switch(variant)
-
-    def switch(self, variant: str):
-        theme.apply(variant)
-        self.app.setStyleSheet(theme.QSS)
-        old = self.win
-        win = MainWindow()
-        win.theme_toggle.connect(self.toggle)
-        if old is not None:
-            win.sidebar.set_params(old.sidebar.params())
-            win.setGeometry(old.geometry())
-            if old.isFullScreen():
-                win.showFullScreen()
-            else:
-                win.show()
-            win.go_to(old.pos)
-            old.close()
-        else:
-            win.show()
-        self.win = win
-
-    def toggle(self):
-        cur = THEMES.index(theme.VARIANT)
-        self.switch(THEMES[(cur + 1) % len(THEMES)])
-
-
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Криптовизор")
@@ -63,8 +28,9 @@ def main():
     f = QFont("Unbounded")
     f.setPixelSize(12)
     app.setFont(f)
-    variant = "editor" if "--editor" in sys.argv else "glass"
-    holder = App(app, variant)
+    app.setStyleSheet(theme.QSS)
+    win = MainWindow()
+    win.show()
     sys.exit(app.exec())
 
 

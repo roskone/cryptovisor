@@ -1,13 +1,8 @@
-"""Палитра и QSS. Две темы: «glass» (стеклянная панель) и «editor» (плоский редактор кода).
-
-Сцены читают цвета из атрибутов модуля при каждой отрисовке, поэтому смена темы —
-это переустановка атрибутов через apply() и повторное применение QSS.
-"""
+"""Палитра и QSS: плоский тёмный редактор кода."""
 from PySide6.QtGui import QColor
 
 FONT = "Unbounded"
 MONO = "Menlo, Consolas, monospace"
-VARIANT = "glass"
 
 _C = QColor
 
@@ -18,19 +13,6 @@ def _cells(future, done, current, key, key_current, empty):
 
 
 PALETTES = {
-    "glass": dict(
-        BG=_C("#0d0f12"), PANEL=_C("#171a1f"), RAIL=_C("#121417"), CARD=_C("#14171b"),
-        BORDER=_C("#2a2e35"), BORDER_SOFT=_C("#1f2329"), TEXT=_C("#e6e8ec"), MUTED=_C("#8b909a"),
-        DIM=_C("#5b6068"), DOT=_C("#1c2026"),
-        ACCENT=_C("#5b8def"), ACCENT_SOFT=_C("#2b3f6b"), WARM=_C("#e8a86b"), GREEN=_C("#5ccb7e"),
-        RED=_C("#f2707a"), AMBER=_C("#e8a86b"),
-        **_cells((_C("#15181c"), _C("#262a31"), _C("#6a6f78")),
-                 (_C("#122219"), _C("#2f6b45"), _C("#d9f5e2")),
-                 (_C("#1a2a4d"), _C("#5b8def"), _C("#ffffff")),
-                 (_C("#2a1f14"), _C("#7a5230"), _C("#f3d5b5")),
-                 (_C("#3d2a15"), _C("#e8a86b"), _C("#ffffff")),
-                 (_C("#111316"), _C("#1f2329"), _C("#44494f"))),
-    ),
     "editor": dict(
         BG=_C("#131418"), PANEL=_C("#0f1013"), RAIL=_C("#0c0d10"), CARD=_C("#16171c"),
         BORDER=_C("#262830"), BORDER_SOFT=_C("#1e2026"), TEXT=_C("#e8e8ea"), MUTED=_C("#8b8b94"),
@@ -53,18 +35,10 @@ def hexs(c: QColor) -> str:
     return c.name()
 
 
-def apply(variant: str):
-    """Переключает палитру модуля и пересобирает QSS."""
-    global VARIANT, QSS
-    VARIANT = variant
-    globals().update(PALETTES[variant])
-    QSS = _build_qss(variant)
-
-
-def _build_qss(v: str) -> str:
-    P = PALETTES[v]
+def _build_qss() -> str:
+    P = PALETTES["editor"]
     h = {k: c.name() for k, c in P.items() if isinstance(c, QColor)}
-    editor = v == "editor"
+    editor = True
     radius = "6px" if editor else "8px"
     row_sel = "#1f2026" if editor else "#1f2a44"
     row_sel_text = "#ffffff"
@@ -184,4 +158,5 @@ QToolTip {{ background: {h['PANEL']}; color: {h['TEXT']}; border: 1px solid {h['
 """
 
 
-apply("glass")
+globals().update(PALETTES["editor"])
+QSS = _build_qss()

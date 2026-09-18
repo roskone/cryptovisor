@@ -1,25 +1,22 @@
 """Главное окно: связывает панель ввода, сцены и транспорт; обрабатывает горячие клавиши."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut, QAction
 from PySide6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget,
                                QLineEdit, QSpinBox, QApplication)
 
 from .sidebar import Sidebar, Params
 from .transport import Transport
-from .chrome import Backdrop, GlassPanel, TabBar
+from .chrome import TabBar
 from .scenes.caesar_scene import CaesarScene
 from .scenes.xor_scene import XorScene
 from .scenes.transposition_scene import TranspositionScene
-from . import theme
 from ..core import caesar, xor, transposition
 from ..core.steps import Step, CipherError
 
 
 class MainWindow(QMainWindow):
-    theme_toggle = Signal()
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Криптовизор — пошаговая визуализация шифров")
@@ -29,13 +26,9 @@ class MainWindow(QMainWindow):
         self.pos = 0
         self.major_only = False
 
-        backdrop = Backdrop()
-        self.setCentralWidget(backdrop)
-        outer = QVBoxLayout(backdrop)
-        outer.setContentsMargins(*((0,) * 4 if theme.VARIANT == "editor" else (12,) * 4))
-        panel = GlassPanel()
-        outer.addWidget(panel)
-        root = QHBoxLayout(panel)
+        central = QWidget()
+        self.setCentralWidget(central)
+        root = QHBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
@@ -68,7 +61,6 @@ class MainWindow(QMainWindow):
         self.sidebar.changed.connect(self.rebuild)
         self.tabbar.algo_selected.connect(self.sidebar.set_algo)
         self.tabbar.mode_selected.connect(self.sidebar.set_decrypt)
-        self.tabbar.theme_toggle.connect(self.theme_toggle)
         self.transport.jump.connect(self.go_to)
         self.transport.first.connect(lambda: self.go_to(0))
         self.transport.prev.connect(self.step_back)
@@ -77,9 +69,6 @@ class MainWindow(QMainWindow):
         self.transport.play_toggled.connect(self.set_playing)
         self.transport.speed_changed.connect(self.timer.setInterval)
 
-        if theme.VARIANT == "editor":
-            # подсказка по клавишам живёт во вкладке внизу; в панели её прячем
-            self.sidebar.keys_section.hide()
         self._setup_shortcuts()
         self.rebuild()
         self.stack.currentWidget().setFocus()
@@ -105,7 +94,6 @@ class MainWindow(QMainWindow):
         sc("E", lambda: self.sidebar.set_decrypt(False))
         sc("D", lambda: self.sidebar.set_decrypt(True))
         sc("M", self.sidebar.toggle_major)
-        sc("T", self.theme_toggle)
         sc(["F", QKeySequence.StandardKey.FullScreen, "F11"], self.toggle_fullscreen)
         sc("Escape", self._escape)
 

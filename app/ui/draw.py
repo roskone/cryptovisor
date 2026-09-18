@@ -8,8 +8,8 @@ from . import theme
 
 
 def font(size: int, weight: int = QFont.Weight.Normal, mono: bool = False) -> QFont:
-    """Unbounded для интерфейса; в теме «editor» всё «внутри редактора» — моноширинным."""
-    if mono and theme.VARIANT == "editor":
+    """Unbounded для интерфейса; всё «внутри редактора» — моноширинным."""
+    if mono:
         f = QFont()
         f.setFamilies(["Menlo", "Consolas", "DejaVu Sans Mono"])
         f.setStyleHint(QFont.StyleHint.Monospace)
@@ -39,25 +39,11 @@ def with_alpha(c: QColor, a: float) -> QColor:
 
 def draw_background(p: QPainter, rect: QRectF, spacing: int = 24):
     p.fillRect(rect, theme.BG)
-    if theme.VARIANT == "editor":
-        return  # ровный фон без сетки
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(theme.DOT)
-    x = spacing
-    while x < rect.width():
-        y = spacing
-        while y < rect.height():
-            p.drawEllipse(QPointF(x, y), 1.2, 1.2)
-            y += spacing
-        x += spacing
 
 
 def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float = 12,
               bg: QColor | None = None, border: QColor | None = None):
-    bg = bg or theme.CARD
-    border = border or theme.BORDER
-    if theme.VARIANT == "editor":
-        # плоский блок: тонкая рамка без заливки, заголовок как комментарий кода
+    # плоский блок: тонкая рамка без заливки, заголовок как комментарий кода
         p.setPen(QPen(theme.BORDER_SOFT, 1))
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(rect, 6, 6)
@@ -66,26 +52,13 @@ def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float
             p.setPen(theme.DIM)
             p.drawText(QRectF(rect.x() + 14, rect.y() + 8, rect.width() - 28, 18),
                        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, "// " + title.lower())
-        return
-    p.setPen(QPen(border, 1))
-    p.setBrush(bg)
-    p.drawRoundedRect(rect, radius, radius)
-    if title:
-        p.setFont(font(11, QFont.Weight.Bold))
-        p.setPen(theme.MUTED)
-        p.drawText(QRectF(rect.x() + 14, rect.y() + 8, rect.width() - 28, 18),
-                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, title.upper())
 
 
 def draw_label(p: QPainter, x: float, y: float, text: str, color: QColor | None = None, size: int = 11):
-    if theme.VARIANT == "editor":
-        p.setFont(font(11, QFont.Weight.Normal, mono=True))
-        p.setPen(theme.DIM)
-        p.drawText(QPointF(x, y), "// " + text.lower())
-        return
-    p.setFont(font(size, QFont.Weight.Bold))
-    p.setPen(color or theme.MUTED)
-    p.drawText(QPointF(x, y), text.upper())
+    """Подпись блока в виде комментария кода."""
+    p.setFont(font(11, QFont.Weight.Normal, mono=True))
+    p.setPen(color or theme.DIM)
+    p.drawText(QPointF(x, y), "// " + text.lower())
 
 
 def draw_text(p: QPainter, rect: QRectF, text: str, size: int = 14, color: QColor | None = None,
@@ -99,8 +72,7 @@ def draw_cell(p: QPainter, rect: QRectF, text: str, state: tuple[QColor, QColor,
               size: int | None = None, radius: float = 8, mono: bool = False, alpha: float = 1.0,
               glow: bool = False, weight: int = QFont.Weight.DemiBold):
     bg, border, fg = state
-    if theme.VARIANT == "editor":
-        mono, radius, glow = True, 6, False
+    mono, radius, glow = True, 6, False
     if glow:
         for i, a in ((6, 0.05), (3, 0.10)):
             p.setPen(QPen(with_alpha(border, a * alpha), i * 2))

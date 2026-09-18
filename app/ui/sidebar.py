@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
 
-from . import theme
 from PySide6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QButtonGroup,
                                QLineEdit, QSpinBox, QWidget, QCheckBox, QRadioButton,
                                QSizePolicy, QScrollArea)
@@ -41,7 +40,6 @@ HOTKEYS = [
     ("E / D", "шифр / дешифр"),
     ("M", "крупные шаги"),
     ("F", "полный экран"),
-    ("T", "сменить тему"),
     ("Esc", "выйти из поля"),
 ]
 
@@ -74,7 +72,7 @@ class Section(QWidget):
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
-        head = QLabel(f"▾   {title.upper() if theme.VARIANT == 'editor' else title}")
+        head = QLabel(f"▾   {title.upper()}")
         head.setObjectName("SectionHead")
         head.setContentsMargins(12, 10, 12, 8)
         lay.addWidget(head)
@@ -106,14 +104,11 @@ def dot_icon(color: str, size: int = 10) -> QIcon:
     return QIcon(pm)
 
 
-def item_button(text: str, icon: str = "▢", dot: str | None = None) -> QPushButton:
-    """Строка-элемент. В теме «editor» вместо глифа — цветная точка-статус (как в референсе)."""
-    if theme.VARIANT == "editor" and dot:
-        b = QPushButton(text)
-        b.setIcon(dot_icon(dot))
-        b.setIconSize(QSize(20, 20))
-    else:
-        b = QPushButton(f"{icon}   {text}")
+def item_button(text: str, dot: str) -> QPushButton:
+    """Строка-элемент с цветной точкой-статусом."""
+    b = QPushButton(text)
+    b.setIcon(dot_icon(dot))
+    b.setIconSize(QSize(20, 20))
     b.setObjectName("Item")
     b.setCheckable(True)
     b.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -177,7 +172,7 @@ class Sidebar(QFrame):
         self.algo_group = QButtonGroup(self)
         self.algo_buttons: dict[str, QPushButton] = {}
         for key, name, dot in ALGOS:
-            btn = item_button(name, "▢", dot)
+            btn = item_button(name, dot)
             self.algo_group.addButton(btn)
             self.algo_buttons[key] = btn
             sec.add(btn)
@@ -187,8 +182,8 @@ class Sidebar(QFrame):
 
         # ── Режим ──
         sec = Section("Режим")
-        self.btn_enc = item_button("Шифровать", "◆", "#7aa2f7")
-        self.btn_dec = item_button("Дешифровать", "◇", "#f0527a")
+        self.btn_enc = item_button("Шифровать", "#7aa2f7")
+        self.btn_dec = item_button("Дешифровать", "#f0527a")
         self.mode_group = QButtonGroup(self)
         self.mode_group.addButton(self.btn_enc)
         self.mode_group.addButton(self.btn_dec)
@@ -275,21 +270,6 @@ class Sidebar(QFrame):
         sec.add(self.major)
         lay.addWidget(sec)
 
-        # ── Клавиши ──
-        self.keys_section = Section("Клавиши")
-        for keys, desc in HOTKEYS:
-            row = QHBoxLayout()
-            row.setSpacing(6)
-            k = QLabel(keys)
-            k.setObjectName("Kbd")
-            k.setFixedWidth(84)
-            dsc = QLabel(desc)
-            dsc.setObjectName("KbdDesc")
-            dsc.setWordWrap(True)
-            row.addWidget(k)
-            row.addWidget(dsc, 1)
-            self.keys_section.add(row)
-        lay.addWidget(self.keys_section)
         lay.addStretch(1)
 
         self._sync_xor()
@@ -326,9 +306,6 @@ class Sidebar(QFrame):
 
     def toggle_major(self):
         self.major.setChecked(not self.major.isChecked())
-
-    def toggle_keys(self):
-        self.keys_section.setVisible(not self.keys_section.isVisible())
 
     def set_params(self, prm: Params):
         """Восстанавливает состояние (используется при смене темы)."""
