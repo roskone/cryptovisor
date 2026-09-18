@@ -1,132 +1,187 @@
-"""Палитра и таблица стилей (QSS). Стиль: тёмная «стеклянная» IDE-панель."""
+"""Палитра и QSS. Две темы: «glass» (стеклянная панель) и «editor» (плоский редактор кода).
+
+Сцены читают цвета из атрибутов модуля при каждой отрисовке, поэтому смена темы —
+это переустановка атрибутов через apply() и повторное применение QSS.
+"""
 from PySide6.QtGui import QColor
 
 FONT = "Unbounded"
+MONO = "Menlo, Consolas, monospace"
+VARIANT = "glass"
 
-# Базовые поверхности
-BG = QColor("#0d0f12")          # редактор / сцена
-PANEL = QColor("#171a1f")       # боковая панель
-RAIL = QColor("#121417")        # узкий рейл с иконками
-CARD = QColor("#14171b")
-BORDER = QColor("#2a2e35")
-BORDER_SOFT = QColor("#1f2329")
-TEXT = QColor("#e6e8ec")
-MUTED = QColor("#8b909a")
-DIM = QColor("#5b6068")
-DOT = QColor("#1c2026")
+_C = QColor
 
-# Акценты (как в референсе: синий для активного, оранжевый для «строк»/ключа, зелёный для готового)
-ACCENT = QColor("#5b8def")
-ACCENT_SOFT = QColor("#2b3f6b")
-WARM = QColor("#e8a86b")
-GREEN = QColor("#5ccb7e")
-RED = QColor("#f2707a")
 
-# Состояния ячеек: (фон, рамка, текст)
-CELL_FUTURE = (QColor("#15181c"), QColor("#262a31"), QColor("#6a6f78"))
-CELL_DONE = (QColor("#122219"), QColor("#2f6b45"), QColor("#d9f5e2"))
-CELL_CURRENT = (QColor("#1a2a4d"), QColor("#5b8def"), QColor("#ffffff"))
-CELL_KEY = (QColor("#2a1f14"), QColor("#7a5230"), QColor("#f3d5b5"))
-CELL_KEY_CURRENT = (QColor("#3d2a15"), QColor("#e8a86b"), QColor("#ffffff"))
-CELL_EMPTY = (QColor("#111316"), QColor("#1f2329"), QColor("#44494f"))
+def _cells(future, done, current, key, key_current, empty):
+    return dict(CELL_FUTURE=future, CELL_DONE=done, CELL_CURRENT=current, CELL_KEY=key,
+                CELL_KEY_CURRENT=key_current, CELL_EMPTY=empty)
 
-QSS = f"""
-QWidget {{
-    color: #e6e8ec;
-    font-family: "{FONT}";
-    font-size: 12px;
-    font-weight: 400;
-}}
-QMainWindow {{ background: #0d0f12; }}
+
+PALETTES = {
+    "glass": dict(
+        BG=_C("#0d0f12"), PANEL=_C("#171a1f"), RAIL=_C("#121417"), CARD=_C("#14171b"),
+        BORDER=_C("#2a2e35"), BORDER_SOFT=_C("#1f2329"), TEXT=_C("#e6e8ec"), MUTED=_C("#8b909a"),
+        DIM=_C("#5b6068"), DOT=_C("#1c2026"),
+        ACCENT=_C("#5b8def"), ACCENT_SOFT=_C("#2b3f6b"), WARM=_C("#e8a86b"), GREEN=_C("#5ccb7e"),
+        RED=_C("#f2707a"), AMBER=_C("#e8a86b"),
+        **_cells((_C("#15181c"), _C("#262a31"), _C("#6a6f78")),
+                 (_C("#122219"), _C("#2f6b45"), _C("#d9f5e2")),
+                 (_C("#1a2a4d"), _C("#5b8def"), _C("#ffffff")),
+                 (_C("#2a1f14"), _C("#7a5230"), _C("#f3d5b5")),
+                 (_C("#3d2a15"), _C("#e8a86b"), _C("#ffffff")),
+                 (_C("#111316"), _C("#1f2329"), _C("#44494f"))),
+    ),
+    "editor": dict(
+        BG=_C("#050506"), PANEL=_C("#0b0b0d"), RAIL=_C("#000000"), CARD=_C("#0a0a0c"),
+        BORDER=_C("#1e1e23"), BORDER_SOFT=_C("#16161a"), TEXT=_C("#e8e8ea"), MUTED=_C("#8b8b94"),
+        DIM=_C("#4e4e56"), DOT=_C("#121215"),
+        ACCENT=_C("#7aa2f7"), ACCENT_SOFT=_C("#1c2745"), WARM=_C("#f0527a"), GREEN=_C("#9ece6a"),
+        RED=_C("#f7768e"), AMBER=_C("#e0af68"),
+        **_cells((_C("#0e0e11"), _C("#222227"), _C("#6a6a72")),
+                 (_C("#141f14"), _C("#4a7a3a"), _C("#d9f0c8")),
+                 (_C("#13203a"), _C("#7aa2f7"), _C("#ffffff")),
+                 (_C("#26121b"), _C("#7a2a44"), _C("#f5c6d4")),
+                 (_C("#3a1628"), _C("#f0527a"), _C("#ffffff")),
+                 (_C("#09090b"), _C("#1a1a1e"), _C("#3c3c44"))),
+    ),
+}
+
+QSS = ""
+
+
+def hexs(c: QColor) -> str:
+    return c.name()
+
+
+def apply(variant: str):
+    """Переключает палитру модуля и пересобирает QSS."""
+    global VARIANT, QSS
+    VARIANT = variant
+    globals().update(PALETTES[variant])
+    QSS = _build_qss(variant)
+
+
+def _build_qss(v: str) -> str:
+    P = PALETTES[v]
+    h = {k: c.name() for k, c in P.items() if isinstance(c, QColor)}
+    editor = v == "editor"
+    radius = "6px" if editor else "8px"
+    row_sel = "#1a1a1e" if editor else "#1f2a44"
+    row_sel_text = "#ffffff"
+    tab_active_bg = "#0f0f11" if editor else h["BG"]
+    tab_border = f"border-bottom: 2px solid {h['ACCENT']};" if not editor else "border-bottom: none;"
+    play_bg = h["WARM"] if editor else h["ACCENT"]
+    play_fg = "#ffffff"
+    play_checked = h["AMBER"]
+    pill_radius = "14px"
+    seg_radius = "12px" if editor else "6px"
+    seg_bg = "#141416" if editor else "transparent"
+    seg_checked = "#26262b" if editor else "#1f2a44"
+    seg_checked_border = "#2e2e34" if editor else "#3b5590"
+    return f"""
+QWidget {{ color: {h['TEXT']}; font-family: "{FONT}"; font-size: 12px; font-weight: 400; }}
+QMainWindow {{ background: {h['BG']}; }}
 QWidget#Glass {{ background: transparent; }}
 
-/* ── рейл ── */
-QFrame#Rail {{ background: #121417; border-right: 1px solid #22262c; }}
+QFrame#Rail {{ background: {h['RAIL']}; border-right: 1px solid {h['BORDER']}; }}
 QPushButton#RailBtn {{
     background: transparent; border: none; border-radius: 8px;
     min-width: 36px; max-width: 36px; min-height: 36px; max-height: 36px;
-    font-size: 16px; color: #8b909a;
+    font-size: 16px; color: {h['MUTED']};
 }}
-QPushButton#RailBtn:hover {{ background: #1d2127; color: #e6e8ec; }}
-QPushButton#RailBtn:checked {{ background: #1f2a44; color: #9dbcff; }}
+QPushButton#RailBtn:hover {{ background: {row_sel}; color: {h['TEXT']}; }}
+QPushButton#RailBtn:checked {{ background: {row_sel}; color: {h['TEXT']}; }}
 
-/* ── боковая панель ── */
-QFrame#Sidebar {{ background: #171a1f; border-right: 1px solid #22262c; }}
+QFrame#Sidebar {{ background: {h['PANEL']}; border-right: 1px solid {h['BORDER']}; }}
 QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; }}
-QLabel#PanelTitle {{ font-size: 12px; font-weight: 500; color: #e6e8ec; }}
-QLabel#SectionHead {{ font-size: 11px; font-weight: 500; color: #c9cdd4; }}
-QFrame#SectionLine {{ background: #22262c; max-height: 1px; min-height: 1px; border: none; }}
-QLabel#Hint {{ color: #6f747d; font-size: 10px; font-weight: 300; }}
-QLabel#Kbd {{ color: #9aa0a9; font-size: 10px; font-weight: 400; }}
-QLabel#KbdDesc {{ color: #6f747d; font-size: 10px; font-weight: 300; }}
-QLabel#FieldLabel {{ color: #8b909a; font-size: 10px; }}
+QLabel#PanelTitle {{ font-size: 12px; font-weight: 500; color: {h['TEXT']}; }}
+QLabel#SectionHead {{ font-size: {'9px' if editor else '11px'}; font-weight: 500; color: {h['DIM'] if editor else '#c9cdd4'}; }}
+QFrame#SectionLine {{ background: {h['BORDER']}; max-height: 1px; min-height: 1px; border: none; }}
+QLabel#Hint {{ color: {h['DIM']}; font-size: 10px; font-weight: 300; }}
+QLabel#Kbd {{ color: {h['MUTED']}; font-size: 10px; }}
+QLabel#KbdDesc {{ color: {h['DIM']}; font-size: 10px; font-weight: 300; }}
+QLabel#FieldLabel {{ color: {h['MUTED']}; font-size: 10px; }}
 
 QPushButton#Item {{
-    background: transparent; border: none; border-radius: 6px; text-align: left;
-    padding: 6px 10px; font-size: 11px; color: #c9cdd4;
+    background: transparent; border: none; border-radius: {radius}; text-align: left;
+    padding: {'7px 10px' if editor else '6px 10px'}; font-size: 11px; color: {h['MUTED'] if editor else '#c9cdd4'};
 }}
-QPushButton#Item:hover {{ background: #1f2329; color: #e6e8ec; }}
-QPushButton#Item:checked {{ background: #1f2a44; color: #ffffff; }}
+QPushButton#Item:hover {{ background: {h['BORDER_SOFT']}; color: {h['TEXT']}; }}
+QPushButton#Item:checked {{ background: {row_sel}; color: {row_sel_text}; }}
 
 QLineEdit, QSpinBox {{
-    background: #0f1114; border: 1px solid #2a2e35; border-radius: 6px;
-    padding: 7px 10px; font-size: 12px; selection-background-color: #5b8def;
+    background: {h['BG']}; border: 1px solid {h['BORDER']}; border-radius: {radius};
+    padding: 7px 10px; font-size: 12px; selection-background-color: {h['ACCENT']};
+    {'font-family: ' + MONO + ';' if editor else ''}
 }}
-QLineEdit:focus, QSpinBox:focus {{ border-color: #5b8def; }}
-QLineEdit:disabled, QSpinBox:disabled {{ color: #5b6068; border-color: #1f2329; }}
+QLineEdit:focus, QSpinBox:focus {{ border-color: {h['ACCENT']}; }}
+QLineEdit:disabled, QSpinBox:disabled {{ color: {h['DIM']}; border-color: {h['BORDER_SOFT']}; }}
 QSpinBox::up-button, QSpinBox::down-button {{ width: 0; border: none; }}
 
-QCheckBox {{ spacing: 8px; font-size: 11px; color: #c9cdd4; }}
-QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 4px; border: 1px solid #2a2e35; background: #0f1114; }}
-QCheckBox::indicator:checked {{ background: #5b8def; border-color: #5b8def; }}
-QRadioButton {{ spacing: 8px; font-size: 11px; color: #c9cdd4; }}
-QRadioButton::indicator {{ width: 14px; height: 14px; border-radius: 7px; border: 1px solid #2a2e35; background: #0f1114; }}
-QRadioButton::indicator:checked {{ background: #5b8def; border: 3px solid #0f1114; outline: 1px solid #5b8def; }}
+QCheckBox {{ spacing: 8px; font-size: 11px; color: {h['TEXT']}; }}
+QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 4px; border: 1px solid {h['BORDER']}; background: {h['BG']}; }}
+QCheckBox::indicator:checked {{ background: {h['ACCENT']}; border-color: {h['ACCENT']}; }}
+QRadioButton {{ spacing: 8px; font-size: 11px; color: {h['TEXT']}; }}
+QRadioButton::indicator {{ width: 14px; height: 14px; border-radius: 7px; border: 1px solid {h['BORDER']}; background: {h['BG']}; }}
+QRadioButton::indicator:checked {{ background: {h['ACCENT']}; border: 3px solid {h['BG']}; outline: 1px solid {h['ACCENT']}; }}
 
-/* ── вкладки ── */
-QFrame#TabBar {{ background: #121417; border-bottom: 1px solid #22262c; }}
+QFrame#TabBar {{ background: {h['RAIL'] if editor else '#121417'}; border-bottom: 1px solid {h['BORDER']}; }}
 QPushButton#Tab {{
-    background: transparent; border: none; border-right: 1px solid #22262c; border-radius: 0;
-    padding: 0 18px; min-height: 38px; font-size: 11px; color: #8b909a;
+    background: transparent; border: none; border-right: 1px solid {h['BORDER']}; border-radius: 0;
+    padding: 0 16px; min-height: 38px; font-size: 11px; color: {h['MUTED']};
 }}
-QPushButton#Tab:hover {{ color: #e6e8ec; background: #16191e; }}
-QPushButton#Tab:checked {{ color: #ffffff; background: #0d0f12; border-bottom: 2px solid #5b8def; }}
+QPushButton#Tab:hover {{ color: {h['TEXT']}; background: {h['BORDER_SOFT']}; }}
+QPushButton#Tab:checked {{ color: #ffffff; background: {tab_active_bg}; {tab_border} }}
 QLabel#Pill {{
-    background: #1a1d22; border: 1px solid #2a2e35; border-radius: 14px;
-    padding: 5px 14px; font-size: 10px; color: #c9cdd4;
+    background: {seg_bg if editor else '#1a1d22'}; border: 1px solid {h['BORDER']}; border-radius: {pill_radius};
+    padding: 5px 14px; font-size: 10px; color: {h['TEXT']};
 }}
 QPushButton#Seg {{
-    background: transparent; border: 1px solid #2a2e35; border-radius: 6px;
-    padding: 4px 10px; font-size: 10px; color: #8b909a;
+    background: {seg_bg}; border: 1px solid {h['BORDER']}; border-radius: {seg_radius};
+    padding: 4px 12px; font-size: 10px; color: {h['MUTED']};
 }}
-QPushButton#Seg:checked {{ background: #1f2a44; border-color: #3b5590; color: #ffffff; }}
-QPushButton#Seg:hover {{ color: #e6e8ec; }}
+QPushButton#Seg:checked {{ background: {seg_checked}; border-color: {seg_checked_border}; color: #ffffff; }}
+QPushButton#Seg:hover {{ color: {h['TEXT']}; }}
 
-/* ── транспорт ── */
-QFrame#Transport {{ background: #121417; border-top: 1px solid #22262c; }}
-QLabel#StepText {{ font-size: 16px; font-weight: 400; padding: 2px 4px; }}
-QLabel#Error {{ color: #f2707a; font-size: 14px; }}
-QLabel#StepCounter {{ color: #8b909a; font-size: 11px; }}
-QPushButton#Transport {{
-    background: #1a1d22; border: 1px solid #2a2e35; border-radius: 8px;
-    font-size: 15px; min-width: 42px; min-height: 36px; padding: 2px 8px; color: #e6e8ec;
+QFrame#Transport {{ background: {h['RAIL'] if editor else '#121417'}; border-top: 1px solid {h['BORDER']}; }}
+QPushButton#BottomTab {{
+    background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0;
+    padding: 6px 2px; margin-right: 18px; font-size: 9px; color: {h['DIM']};
 }}
-QPushButton#Transport:hover {{ background: #22262c; }}
-QPushButton#Transport:disabled {{ color: #44494f; border-color: #1f2329; }}
+QPushButton#BottomTab:hover {{ color: {h['TEXT']}; }}
+QPushButton#BottomTab:checked {{ color: {h['TEXT']}; border-bottom: 2px solid {h['AMBER']}; }}
+QLabel#StepText {{ font-size: {'15px' if editor else '16px'}; padding: 2px 4px; {'font-family: ' + MONO + ';' if editor else ''} }}
+QLabel#Error {{ color: {h['RED']}; font-size: 14px; }}
+QLabel#StepCounter {{ color: {h['MUTED']}; font-size: 11px; }}
+QListWidget#Journal {{
+    background: transparent; border: none; font-family: {MONO}; font-size: 12px; color: {h['MUTED']};
+    outline: none;
+}}
+QListWidget#Journal::item {{ padding: 1px 6px; border: none; }}
+QListWidget#Journal::item:selected {{ background: #1d3a1f; color: {h['TEXT']}; }}
+QPushButton#Transport {{
+    background: {'#141416' if editor else '#1a1d22'}; border: 1px solid {h['BORDER']}; border-radius: {radius};
+    font-size: 15px; min-width: 42px; min-height: 36px; padding: 2px 8px; color: {h['TEXT']};
+}}
+QPushButton#Transport:hover {{ background: {row_sel}; }}
+QPushButton#Transport:disabled {{ color: {h['DIM']}; border-color: {h['BORDER_SOFT']}; }}
 QPushButton#Play {{
     font-size: 12px; font-weight: 500; min-height: 36px; padding: 2px 18px;
-    background: #5b8def; color: #ffffff; border: none; border-radius: 8px;
+    background: {play_bg}; color: {play_fg}; border: none; border-radius: {radius};
 }}
-QPushButton#Play:hover {{ background: #6f9cf5; }}
-QPushButton#Play:checked {{ background: #e8a86b; color: #14171b; }}
-QPushButton#Play:disabled {{ background: #1f2329; color: #44494f; }}
+QPushButton#Play:hover {{ background: {h['ACCENT']}; }}
+QPushButton#Play:checked {{ background: {play_checked}; color: #111111; }}
+QPushButton#Play:disabled {{ background: {h['BORDER_SOFT']}; color: {h['DIM']}; }}
 
-QSlider::groove:horizontal {{ height: 3px; background: #2a2e35; border-radius: 1px; }}
-QSlider::handle:horizontal {{ width: 14px; height: 14px; margin: -6px 0; background: #5b8def; border-radius: 7px; }}
-QSlider::sub-page:horizontal {{ background: #5b8def; border-radius: 1px; }}
+QSlider::groove:horizontal {{ height: 3px; background: {h['BORDER']}; border-radius: 1px; }}
+QSlider::handle:horizontal {{ width: 14px; height: 14px; margin: -6px 0; background: {h['ACCENT']}; border-radius: 7px; }}
+QSlider::sub-page:horizontal {{ background: {h['ACCENT']}; border-radius: 1px; }}
 
 QScrollBar:vertical {{ width: 6px; background: transparent; }}
-QScrollBar::handle:vertical {{ background: #2a2e35; border-radius: 3px; min-height: 30px; }}
+QScrollBar::handle:vertical {{ background: {h['BORDER']}; border-radius: 3px; min-height: 30px; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
-QToolTip {{ background: #1a1d22; color: #e6e8ec; border: 1px solid #2a2e35; padding: 4px 8px; font-size: 10px; }}
+QToolTip {{ background: {h['PANEL']}; color: {h['TEXT']}; border: 1px solid {h['BORDER']}; padding: 4px 8px; font-size: 10px; }}
 """
+
+
+apply("glass")

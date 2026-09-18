@@ -8,11 +8,26 @@ from . import theme
 
 
 def font(size: int, weight: int = QFont.Weight.Normal, mono: bool = False) -> QFont:
-    """Все надписи — Unbounded; параметр mono оставлен для совместимости сцен."""
-    f = QFont(theme.FONT)
+    """Unbounded для интерфейса; в теме «editor» всё «внутри редактора» — моноширинным."""
+    if mono and theme.VARIANT == "editor":
+        f = QFont()
+        f.setFamilies(["Menlo", "Consolas", "DejaVu Sans Mono"])
+        f.setStyleHint(QFont.StyleHint.Monospace)
+    else:
+        f = QFont(theme.FONT)
     f.setPixelSize(size)
     f.setWeight(weight)
     return f
+
+
+_line_no = 0
+_line_y = -1e9
+
+
+def begin_lines():
+    """Сбрасывает нумерацию строк гуттера перед отрисовкой сцены."""
+    global _line_no, _line_y
+    _line_no, _line_y = 0, -1e9
 
 
 def ease(t: float) -> float:
@@ -33,6 +48,12 @@ def with_alpha(c: QColor, a: float) -> QColor:
 
 def draw_background(p: QPainter, rect: QRectF, spacing: int = 24):
     p.fillRect(rect, theme.BG)
+    if theme.VARIANT == "editor":
+        # гуттер с номерами строк вместо точечной сетки
+        p.fillRect(QRectF(0, 0, 34, rect.height()), theme.PANEL)
+        p.setPen(QPen(theme.BORDER_SOFT, 1))
+        p.drawLine(QPointF(34, 0), QPointF(34, rect.height()))
+        return
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(theme.DOT)
     x = spacing
@@ -44,8 +65,35 @@ def draw_background(p: QPainter, rect: QRectF, spacing: int = 24):
         x += spacing
 
 
+def _gutter_number(p: QPainter, y: float):
+    """Номер строки в гуттере слева (тема «editor»)."""
+    global _line_no, _line_y
+    if abs(y - _line_y) < 4:      # блоки на одной строке получают один номер
+        return
+    _line_no += 1
+    _line_y = y
+    p.setFont(font(11, QFont.Weight.Normal, mono=True))
+    p.setPen(theme.DIM)
+    p.drawText(QRectF(0, y - 13, 30, 18), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+               str(_line_no))
+
+
 def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float = 12,
-              bg: QColor = theme.CARD, border: QColor = theme.BORDER):
+              bg: QColor | None = None, border: QColor | None = None):
+    bg = bg or theme.CARD
+    border = border or theme.BORDER
+    if theme.VARIANT == "editor":
+        # плоский блок: тонкая рамка без заливки, заголовок как комментарий кода
+        p.setPen(QPen(theme.BORDER_SOFT, 1))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRoundedRect(rect, 6, 6)
+        if title:
+            _gutter_number(p, rect.y() + 18)
+            p.setFont(font(11, QFont.Weight.Normal, mono=True))
+            p.setPen(theme.DIM)
+            p.drawText(QRectF(rect.x() + 14, rect.y() + 8, rect.width() - 28, 18),
+                       Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, "// " + title.lower())
+        return
     p.setPen(QPen(border, 1))
     p.setBrush(bg)
     p.drawRoundedRect(rect, radius, radius)
@@ -56,16 +104,22 @@ def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float
                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, title.upper())
 
 
-def draw_label(p: QPainter, x: float, y: float, text: str, color: QColor = theme.MUTED, size: int = 11):
+def draw_label(p: QPainter, x: float, y: float, text: str, color: QColor | None = None, size: int = 11):
+    if theme.VARIANT == "editor":
+        _gutter_number(p, y)
+        p.setFont(font(11, QFont.Weight.Normal, mono=True))
+        p.setPen(theme.DIM)
+        p.drawText(QPointF(x, y), "// " + text.lower())
+        return
     p.setFont(font(size, QFont.Weight.Bold))
-    p.setPen(color)
+    p.setPen(color or theme.MUTED)
     p.drawText(QPointF(x, y), text.upper())
 
 
-def draw_text(p: QPainter, rect: QRectF, text: str, size: int = 14, color: QColor = theme.TEXT,
+def draw_text(p: QPainter, rect: QRectF, text: str, size: int = 14, color: QColor | None = None,
               weight: int = QFont.Weight.Normal, align=Qt.AlignmentFlag.AlignCenter, mono: bool = False):
     p.setFont(font(size, weight, mono))
-    p.setPen(color)
+    p.setPen(color or theme.TEXT)
     p.drawText(rect, align, text)
 
 
@@ -73,6 +127,8 @@ def draw_cell(p: QPainter, rect: QRectF, text: str, state: tuple[QColor, QColor,
               size: int | None = None, radius: float = 8, mono: bool = False, alpha: float = 1.0,
               glow: bool = False, weight: int = QFont.Weight.DemiBold):
     bg, border, fg = state
+    if theme.VARIANT == "editor":
+        mono, radius, glow = True, 6, False
     if glow:
         for i, a in ((6, 0.05), (3, 0.10)):
             p.setPen(QPen(with_alpha(border, a * alpha), i * 2))
@@ -128,9 +184,9 @@ def draw_arrow(p: QPainter, a: QPointF, b: QPointF, color: QColor, width: float 
     p.drawPath(tri)
 
 
-def draw_badge(p: QPainter, center: QPointF, text: str, bg: QColor, fg: QColor = theme.BG, r: float = 11):
+def draw_badge(p: QPainter, center: QPointF, text: str, bg: QColor, fg: QColor | None = None, r: float = 11):
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(bg)
     p.drawEllipse(center, r, r)
-    draw_text(p, QRectF(center.x() - r, center.y() - r, 2 * r, 2 * r), text, int(r * 1.1), fg,
+    draw_text(p, QRectF(center.x() - r, center.y() - r, 2 * r, 2 * r), text, int(r * 1.1), fg or theme.BG,
               QFont.Weight.Bold)

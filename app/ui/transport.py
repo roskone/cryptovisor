@@ -1,8 +1,20 @@
-"""Нижняя панель управления воспроизведением и пояснение текущего шага."""
+"""Нижняя панель: вкладки Шаг / Журнал / Клавиши, управление воспроизведением."""
 from __future__ import annotations
 
+import re
+
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSlider, QSizePolicy
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSlider,
+                               QStackedWidget, QWidget, QListWidget, QListWidgetItem, QButtonGroup,
+                               QGridLayout)
+
+from .sidebar import HOTKEYS
+
+_TAG = re.compile(r"<[^>]+>")
+
+
+def plain(html: str) -> str:
+    return _TAG.sub("", html).replace("&nbsp;", " ").replace("&amp;", "&")
 
 
 class Transport(QFrame):
@@ -12,22 +24,73 @@ class Transport(QFrame):
     last = Signal()
     play_toggled = Signal(bool)
     speed_changed = Signal(int)   # мс на шаг
+    jump = Signal(int)            # клик по строке журнала
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Transport")
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(22, 12, 22, 14)
-        lay.setSpacing(8)
+        lay.setContentsMargins(22, 0, 22, 14)
+        lay.setSpacing(6)
 
+        # ── вкладки нижней панели ──
+        tabs = QHBoxLayout()
+        tabs.setContentsMargins(0, 0, 0, 0)
+        tabs.setSpacing(0)
+        self.tab_group = QButtonGroup(self)
+        self.tab_buttons = []
+        for i, name in enumerate(("ШАГ", "ЖУРНАЛ", "КЛАВИШИ")):
+            b = QPushButton(name)
+            b.setObjectName("BottomTab")
+            b.setCheckable(True)
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.tab_group.addButton(b, i)
+            self.tab_buttons.append(b)
+            tabs.addWidget(b)
+        tabs.addStretch(1)
+        lay.addLayout(tabs)
+        self.tab_buttons[0].setChecked(True)
+        self.tab_group.idClicked.connect(self._on_tab)
+
+        self.pages = QStackedWidget()
+        self.pages.setFixedHeight(84)
+        lay.addWidget(self.pages)
+
+        # страница «Шаг»
         self.step_text = QLabel("Введите данные слева, затем нажмите «Шаг» или пробел")
         self.step_text.setObjectName("StepText")
         self.step_text.setTextFormat(Qt.TextFormat.RichText)
         self.step_text.setWordWrap(True)
-        self.step_text.setMinimumHeight(52)
         self.step_text.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        lay.addWidget(self.step_text)
+        self.pages.addWidget(self.step_text)
 
+        # страница «Журнал»
+        self.journal = QListWidget()
+        self.journal.setObjectName("Journal")
+        self.journal.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.journal.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.journal.itemClicked.connect(lambda it: self.jump.emit(self.journal.row(it) + 1))
+        self.pages.addWidget(self.journal)
+
+        # страница «Клавиши»
+        keys = QWidget()
+        grid = QGridLayout(keys)
+        grid.setContentsMargins(4, 4, 4, 0)
+        grid.setHorizontalSpacing(18)
+        grid.setVerticalSpacing(2)
+        cols = 4
+        for i, (k, d) in enumerate(HOTKEYS):
+            r, c = divmod(i, cols)
+            kl = QLabel(k)
+            kl.setObjectName("Kbd")
+            dl = QLabel(d)
+            dl.setObjectName("KbdDesc")
+            grid.addWidget(kl, r, c * 2)
+            grid.addWidget(dl, r, c * 2 + 1)
+        grid.setColumnStretch(cols * 2, 1)
+        self.pages.addWidget(keys)
+
+        # ── кнопки ──
         row = QHBoxLayout()
         row.setSpacing(8)
         self.btn_first = self._btn("⏮", "В начало (Home)")
@@ -73,8 +136,10 @@ class Transport(QFrame):
         b.setCursor(Qt.CursorShape.PointingHandCursor)
         return b
 
+    def _on_tab(self, idx: int):
+        self.pages.setCurrentIndex(idx)
+
     def interval_ms(self) -> int:
-        # 1 → 2000 мс, 10 → 150 мс
         v = self.speed.value()
         return int(2000 - (v - 1) * (1850 / 9))
 
@@ -92,6 +157,20 @@ class Transport(QFrame):
         self.btn_next.setEnabled(pos < total)
         self.btn_last.setEnabled(pos < total)
         self.btn_play.setEnabled(total > 0)
+
+    def set_journal(self, texts: list[str], pos: int):
+        """Журнал: все шаги моноширинным списком, пройденные — ярче, текущий — выделен."""
+        if self.journal.count() != len(texts):
+            self.journal.clear()
+            width = len(str(len(texts)))
+            for i, t in enumerate(texts, 1):
+                self.journal.addItem(QListWidgetItem(f"{i:>{width}}   {plain(t)}"))
+        self.journal.blockSignals(True)
+        self.journal.clearSelection()
+        if pos > 0:
+            self.journal.setCurrentRow(pos - 1)
+            self.journal.scrollToItem(self.journal.item(pos - 1))
+        self.journal.blockSignals(False)
 
     def set_playing(self, playing: bool):
         self.btn_play.blockSignals(True)

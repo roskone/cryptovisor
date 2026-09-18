@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
+
+from . import theme
 from PySide6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QButtonGroup,
                                QLineEdit, QSpinBox, QWidget, QCheckBox, QRadioButton,
                                QSizePolicy, QScrollArea)
@@ -23,9 +26,9 @@ class Params:
 
 
 ALGOS = [
-    ("caesar", "Шифр Цезаря"),
-    ("xor", "XOR"),
-    ("transposition", "Перестановка"),
+    ("caesar", "Шифр Цезаря", "#9ece6a"),
+    ("xor", "XOR", "#bb9af7"),
+    ("transposition", "Перестановка", "#ff9e64"),
 ]
 
 HOTKEYS = [
@@ -38,6 +41,7 @@ HOTKEYS = [
     ("E / D", "шифр / дешифр"),
     ("M", "крупные шаги"),
     ("F", "полный экран"),
+    ("T", "сменить тему"),
     ("Esc", "выйти из поля"),
 ]
 
@@ -70,7 +74,7 @@ class Section(QWidget):
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
-        head = QLabel(f"▾   {title}")
+        head = QLabel(f"▾   {title.upper() if theme.VARIANT == 'editor' else title}")
         head.setObjectName("SectionHead")
         head.setContentsMargins(12, 10, 12, 8)
         lay.addWidget(head)
@@ -90,8 +94,26 @@ class Section(QWidget):
             self.body_lay.addLayout(w)
 
 
-def item_button(text: str, icon: str = "▢") -> QPushButton:
-    b = QPushButton(f"{icon}   {text}")
+def dot_icon(color: str, size: int = 10) -> QIcon:
+    pm = QPixmap(size * 2, size * 2)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(color))
+    p.drawEllipse(size // 2, size // 2, size, size)
+    p.end()
+    return QIcon(pm)
+
+
+def item_button(text: str, icon: str = "▢", dot: str | None = None) -> QPushButton:
+    """Строка-элемент. В теме «editor» вместо глифа — цветная точка-статус (как в референсе)."""
+    if theme.VARIANT == "editor" and dot:
+        b = QPushButton(text)
+        b.setIcon(dot_icon(dot))
+        b.setIconSize(QSize(20, 20))
+    else:
+        b = QPushButton(f"{icon}   {text}")
     b.setObjectName("Item")
     b.setCheckable(True)
     b.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -154,8 +176,8 @@ class Sidebar(QFrame):
         sec = Section("Алгоритм")
         self.algo_group = QButtonGroup(self)
         self.algo_buttons: dict[str, QPushButton] = {}
-        for key, name in ALGOS:
-            btn = item_button(name, "▢")
+        for key, name, dot in ALGOS:
+            btn = item_button(name, "▢", dot)
             self.algo_group.addButton(btn)
             self.algo_buttons[key] = btn
             sec.add(btn)
@@ -165,8 +187,8 @@ class Sidebar(QFrame):
 
         # ── Режим ──
         sec = Section("Режим")
-        self.btn_enc = item_button("Шифровать", "◆")
-        self.btn_dec = item_button("Дешифровать", "◇")
+        self.btn_enc = item_button("Шифровать", "◆", "#7aa2f7")
+        self.btn_dec = item_button("Дешифровать", "◇", "#f0527a")
         self.mode_group = QButtonGroup(self)
         self.mode_group.addButton(self.btn_enc)
         self.mode_group.addButton(self.btn_dec)
@@ -307,6 +329,21 @@ class Sidebar(QFrame):
 
     def toggle_keys(self):
         self.keys_section.setVisible(not self.keys_section.isVisible())
+
+    def set_params(self, prm: Params):
+        """Восстанавливает состояние (используется при смене темы)."""
+        self.blockSignals(True)
+        self.text.setText(prm.text)
+        self.caesar_shift.setValue(prm.caesar_shift)
+        (self.xor_num_radio if prm.xor_key_mode == "num" else self.xor_str_radio).setChecked(True)
+        self.xor_key_num.setValue(prm.xor_key_num)
+        self.xor_key_str.setText(prm.xor_key_str)
+        self.trans_key.setText(prm.trans_key)
+        self.major.setChecked(prm.major_steps)
+        (self.btn_dec if prm.decrypt else self.btn_enc).setChecked(True)
+        self.algo_buttons[prm.algo].setChecked(True)
+        self.blockSignals(False)
+        self._on_algo(None)
 
     def set_text_hint(self, text: str):
         self.text_hint.setText(text)

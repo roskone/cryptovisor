@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, QVariantAnimation, QEasingCurve, QRectF, Property
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QWidget
 
-from ..draw import draw_background, draw_text, font
+from ..draw import draw_background, draw_text, font, begin_lines
 from .. import theme
 from ...core.steps import Step
 
@@ -60,6 +60,7 @@ class Scene(QWidget):
         p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         rect = QRectF(self.rect())
         draw_background(p, rect)
+        begin_lines()
         if self.ctx is None:
             draw_text(p, rect, "Введите данные слева, чтобы начать", 18, theme.MUTED)
             return

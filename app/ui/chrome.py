@@ -16,6 +16,9 @@ class Backdrop(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = QRectF(self.rect())
+        if theme.VARIANT == "editor":
+            p.fillRect(r, theme.RAIL)
+            return
         p.fillRect(r, QColor("#07080b"))
         blobs = [
             (0.12, 0.10, 0.55, "#2a3f8f"),
@@ -42,14 +45,20 @@ class GlassPanel(QFrame):
         self.setObjectName("Glass")
 
     def resizeEvent(self, event):
-        path = QPainterPath()
-        path.addRoundedRect(QRectF(self.rect()), self.RADIUS, self.RADIUS)
-        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+        if theme.VARIANT == "editor":
+            self.clearMask()
+        else:
+            path = QPainterPath()
+            path.addRoundedRect(QRectF(self.rect()), self.RADIUS, self.RADIUS)
+            self.setMask(QRegion(path.toFillPolygon().toPolygon()))
         super().resizeEvent(event)
 
     def paintEvent(self, event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if theme.VARIANT == "editor":
+            p.fillRect(self.rect(), theme.BG)
+            return
         r = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         p.setPen(QPen(theme.BORDER, 1))
         p.setBrush(theme.BG)
@@ -65,6 +74,15 @@ class Logo(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = QRectF(self.rect())
+        if theme.VARIANT == "editor":
+            # монохромный знак, как логотипы в референсах
+            p.setPen(QPen(theme.TEXT, 2))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(r.adjusted(2, 2, -2, -2), 7, 7)
+            p.setFont(font(13, QFont.Weight.Bold))
+            p.setPen(theme.TEXT)
+            p.drawText(r, Qt.AlignmentFlag.AlignCenter, "К")
+            return
         g = QLinearGradient(r.topLeft(), r.bottomRight())
         g.setColorAt(0, QColor("#5b8def"))
         g.setColorAt(1, QColor("#7c4dff"))
@@ -80,6 +98,7 @@ class Rail(QFrame):
     """Узкая колонка слева: логотип и иконки-действия."""
     keys = Signal()
     fullscreen = Signal()
+    theme_toggle = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -95,6 +114,9 @@ class Rail(QFrame):
         self.btn_keys.clicked.connect(self.keys)
         lay.addWidget(self.btn_keys, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addStretch(1)
+        self.btn_theme = self._btn("◐", "Сменить тему оформления (T)")
+        self.btn_theme.clicked.connect(self.theme_toggle)
+        lay.addWidget(self.btn_theme, 0, Qt.AlignmentFlag.AlignHCenter)
         self.btn_full = self._btn("⤢", "Полный экран (F)")
         self.btn_full.clicked.connect(self.fullscreen)
         lay.addWidget(self.btn_full, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -123,8 +145,10 @@ class TabBar(QFrame):
         lay.setSpacing(0)
         self.group = QButtonGroup(self)
         self.tabs: dict[str, QPushButton] = {}
-        for key, name in (("caesar", "Цезарь"), ("xor", "XOR"), ("transposition", "Перестановка")):
-            b = QPushButton(f"▢   {name}")
+        editor = theme.VARIANT == "editor"
+        for key, name, glyph in (("caesar", "Цезарь", "⇄"), ("xor", "XOR", "⊕"),
+                                 ("transposition", "Перестановка", "▦")):
+            b = QPushButton(f"{glyph if editor else '▢'}   {name}" + ("      ×" if editor else ""))
             b.setObjectName("Tab")
             b.setCheckable(True)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -140,8 +164,8 @@ class TabBar(QFrame):
         lay.addSpacing(12)
 
         self.seg_group = QButtonGroup(self)
-        self.btn_enc = QPushButton("◆  Шифр")
-        self.btn_dec = QPushButton("◇  Дешифр")
+        self.btn_enc = QPushButton("Шифрование" if editor else "◆  Шифр")
+        self.btn_dec = QPushButton("Дешифрование" if editor else "◇  Дешифр")
         for b, dec in ((self.btn_enc, False), (self.btn_dec, True)):
             b.setObjectName("Seg")
             b.setCheckable(True)

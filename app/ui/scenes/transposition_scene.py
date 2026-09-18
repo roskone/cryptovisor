@@ -22,7 +22,7 @@ class TranspositionScene(Scene):
         mode = ctx["mode"]
         phase = d["phase"] if d else None
         t = ease(self._progress)
-        m = 40
+        m = 56 if theme.VARIANT == "editor" else 40
         W = rect.width() - 2 * m
         y = 34
 
