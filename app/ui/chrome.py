@@ -66,9 +66,9 @@ class GlassPanel(QFrame):
 
 
 class Logo(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, size: int = 30):
         super().__init__(parent)
-        self.setFixedSize(30, 30)
+        self.setFixedSize(size, size)
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -79,7 +79,7 @@ class Logo(QWidget):
             p.setPen(QPen(theme.TEXT, 2))
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawRoundedRect(r.adjusted(2, 2, -2, -2), 7, 7)
-            p.setFont(font(13, QFont.Weight.Bold))
+            p.setFont(font(int(r.height() * 0.45), QFont.Weight.Bold))
             p.setPen(theme.TEXT)
             p.drawText(r, Qt.AlignmentFlag.AlignCenter, "К")
             return
@@ -89,52 +89,17 @@ class Logo(QWidget):
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(g)
         p.drawRoundedRect(r, 8, 8)
-        p.setFont(font(15, QFont.Weight.Bold))
+        p.setFont(font(int(r.height() * 0.5), QFont.Weight.Bold))
         p.setPen(QColor("#ffffff"))
         p.drawText(r, Qt.AlignmentFlag.AlignCenter, "К")
 
-
-class Rail(QFrame):
-    """Узкая колонка слева: логотип и иконки-действия."""
-    keys = Signal()
-    fullscreen = Signal()
-    theme_toggle = Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("Rail")
-        self.setFixedWidth(52)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(8, 12, 8, 12)
-        lay.setSpacing(6)
-        lay.addWidget(Logo(), 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addSpacing(10)
-        self.btn_keys = self._btn("?", "Показать / скрыть подсказку по клавишам", checkable=True)
-        self.btn_keys.setChecked(True)
-        self.btn_keys.clicked.connect(self.keys)
-        lay.addWidget(self.btn_keys, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addStretch(1)
-        self.btn_theme = self._btn("◐", "Сменить тему оформления (T)")
-        self.btn_theme.clicked.connect(self.theme_toggle)
-        lay.addWidget(self.btn_theme, 0, Qt.AlignmentFlag.AlignHCenter)
-        self.btn_full = self._btn("⤢", "Полный экран (F)")
-        self.btn_full.clicked.connect(self.fullscreen)
-        lay.addWidget(self.btn_full, 0, Qt.AlignmentFlag.AlignHCenter)
-
-    @staticmethod
-    def _btn(glyph: str, tip: str, checkable: bool = False) -> QPushButton:
-        b = QPushButton(glyph)
-        b.setObjectName("RailBtn")
-        b.setToolTip(tip)
-        b.setCheckable(checkable)
-        b.setCursor(Qt.CursorShape.PointingHandCursor)
-        return b
 
 
 class TabBar(QFrame):
     """Вкладки алгоритмов + справа переключатель режима и «пилюля» с номером шага."""
     algo_selected = Signal(str)
     mode_selected = Signal(bool)   # True = дешифрование
+    theme_toggle = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -143,6 +108,9 @@ class TabBar(QFrame):
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 12, 0)
         lay.setSpacing(0)
+        lay.addSpacing(10)
+        lay.addWidget(Logo(size=24))
+        lay.addSpacing(10)
         self.group = QButtonGroup(self)
         self.tabs: dict[str, QPushButton] = {}
         editor = theme.VARIANT == "editor"
@@ -175,6 +143,13 @@ class TabBar(QFrame):
             b.clicked.connect(lambda _=False, d=dec: self.mode_selected.emit(d))
             lay.addSpacing(4)
         self.btn_enc.setChecked(True)
+        lay.addSpacing(8)
+        self.btn_theme = QPushButton("◐")
+        self.btn_theme.setObjectName("Seg")
+        self.btn_theme.setToolTip("Сменить тему оформления (T)")
+        self.btn_theme.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_theme.clicked.connect(self.theme_toggle)
+        lay.addWidget(self.btn_theme)
 
     def sync(self, algo: str, decrypt: bool):
         self.tabs[algo].setChecked(True)

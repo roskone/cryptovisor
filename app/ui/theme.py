@@ -32,17 +32,17 @@ PALETTES = {
                  (_C("#111316"), _C("#1f2329"), _C("#44494f"))),
     ),
     "editor": dict(
-        BG=_C("#050506"), PANEL=_C("#0b0b0d"), RAIL=_C("#000000"), CARD=_C("#0a0a0c"),
-        BORDER=_C("#1e1e23"), BORDER_SOFT=_C("#16161a"), TEXT=_C("#e8e8ea"), MUTED=_C("#8b8b94"),
-        DIM=_C("#4e4e56"), DOT=_C("#121215"),
+        BG=_C("#131418"), PANEL=_C("#0f1013"), RAIL=_C("#0c0d10"), CARD=_C("#16171c"),
+        BORDER=_C("#262830"), BORDER_SOFT=_C("#1e2026"), TEXT=_C("#e8e8ea"), MUTED=_C("#8b8b94"),
+        DIM=_C("#5a5b64"), DOT=_C("#1a1b20"),
         ACCENT=_C("#7aa2f7"), ACCENT_SOFT=_C("#1c2745"), WARM=_C("#f0527a"), GREEN=_C("#9ece6a"),
         RED=_C("#f7768e"), AMBER=_C("#e0af68"),
-        **_cells((_C("#0e0e11"), _C("#222227"), _C("#6a6a72")),
-                 (_C("#141f14"), _C("#4a7a3a"), _C("#d9f0c8")),
-                 (_C("#13203a"), _C("#7aa2f7"), _C("#ffffff")),
-                 (_C("#26121b"), _C("#7a2a44"), _C("#f5c6d4")),
+        **_cells((_C("#1a1b21"), _C("#2c2e37"), _C("#767880")),
+                 (_C("#182618"), _C("#4a7a3a"), _C("#d9f0c8")),
+                 (_C("#18264a"), _C("#7aa2f7"), _C("#ffffff")),
+                 (_C("#2c161f"), _C("#7a2a44"), _C("#f5c6d4")),
                  (_C("#3a1628"), _C("#f0527a"), _C("#ffffff")),
-                 (_C("#09090b"), _C("#1a1a1e"), _C("#3c3c44"))),
+                 (_C("#111216"), _C("#22232a"), _C("#44454d"))),
     ),
 }
 
@@ -66,18 +66,18 @@ def _build_qss(v: str) -> str:
     h = {k: c.name() for k, c in P.items() if isinstance(c, QColor)}
     editor = v == "editor"
     radius = "6px" if editor else "8px"
-    row_sel = "#1a1a1e" if editor else "#1f2a44"
+    row_sel = "#1f2026" if editor else "#1f2a44"
     row_sel_text = "#ffffff"
-    tab_active_bg = "#0f0f11" if editor else h["BG"]
+    tab_active_bg = h["BG"] if editor else h["BG"]
     tab_border = f"border-bottom: 2px solid {h['ACCENT']};" if not editor else "border-bottom: none;"
     play_bg = h["WARM"] if editor else h["ACCENT"]
     play_fg = "#ffffff"
     play_checked = h["AMBER"]
     pill_radius = "14px"
     seg_radius = "12px" if editor else "6px"
-    seg_bg = "#141416" if editor else "transparent"
-    seg_checked = "#26262b" if editor else "#1f2a44"
-    seg_checked_border = "#2e2e34" if editor else "#3b5590"
+    seg_bg = "#16171c" if editor else "transparent"
+    seg_checked = "#2a2b32" if editor else "#1f2a44"
+    seg_checked_border = "#34363e" if editor else "#3b5590"
     return f"""
 QWidget {{ color: {h['TEXT']}; font-family: "{FONT}"; font-size: 12px; font-weight: 400; }}
 QMainWindow {{ background: {h['BG']}; }}
@@ -158,9 +158,9 @@ QListWidget#Journal {{
     outline: none;
 }}
 QListWidget#Journal::item {{ padding: 1px 6px; border: none; }}
-QListWidget#Journal::item:selected {{ background: #1d3a1f; color: {h['TEXT']}; }}
+QListWidget#Journal::item:selected {{ background: #1f3d22; color: {h['TEXT']}; }}
 QPushButton#Transport {{
-    background: {'#141416' if editor else '#1a1d22'}; border: 1px solid {h['BORDER']}; border-radius: {radius};
+    background: {'#16171c' if editor else '#1a1d22'}; border: 1px solid {h['BORDER']}; border-radius: {radius};
     font-size: 15px; min-width: 42px; min-height: 36px; padding: 2px 8px; color: {h['TEXT']};
 }}
 QPushButton#Transport:hover {{ background: {row_sel}; }}

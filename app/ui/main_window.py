@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, Q
 
 from .sidebar import Sidebar, Params
 from .transport import Transport
-from .chrome import Backdrop, GlassPanel, Rail, TabBar
+from .chrome import Backdrop, GlassPanel, TabBar
 from .scenes.caesar_scene import CaesarScene
 from .scenes.xor_scene import XorScene
 from .scenes.transposition_scene import TranspositionScene
@@ -39,8 +39,6 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        self.rail = Rail()
-        root.addWidget(self.rail)
         self.sidebar = Sidebar()
         root.addWidget(self.sidebar)
 
@@ -70,9 +68,7 @@ class MainWindow(QMainWindow):
         self.sidebar.changed.connect(self.rebuild)
         self.tabbar.algo_selected.connect(self.sidebar.set_algo)
         self.tabbar.mode_selected.connect(self.sidebar.set_decrypt)
-        self.rail.keys.connect(self.sidebar.toggle_keys)
-        self.rail.fullscreen.connect(self.toggle_fullscreen)
-        self.rail.theme_toggle.connect(self.theme_toggle)
+        self.tabbar.theme_toggle.connect(self.theme_toggle)
         self.transport.jump.connect(self.go_to)
         self.transport.first.connect(lambda: self.go_to(0))
         self.transport.prev.connect(self.step_back)
@@ -84,7 +80,6 @@ class MainWindow(QMainWindow):
         if theme.VARIANT == "editor":
             # подсказка по клавишам живёт во вкладке внизу; в панели её прячем
             self.sidebar.keys_section.hide()
-            self.rail.btn_keys.setChecked(False)
         self._setup_shortcuts()
         self.rebuild()
         self.stack.currentWidget().setFocus()
