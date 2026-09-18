@@ -65,35 +65,6 @@ class GlassPanel(QFrame):
         p.drawRoundedRect(r, self.RADIUS, self.RADIUS)
 
 
-class Logo(QWidget):
-    def __init__(self, parent=None, size: int = 30):
-        super().__init__(parent)
-        self.setFixedSize(size, size)
-
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        r = QRectF(self.rect())
-        if theme.VARIANT == "editor":
-            # монохромный знак, как логотипы в референсах
-            p.setPen(QPen(theme.TEXT, 2))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawRoundedRect(r.adjusted(2, 2, -2, -2), 7, 7)
-            p.setFont(font(int(r.height() * 0.45), QFont.Weight.Bold))
-            p.setPen(theme.TEXT)
-            p.drawText(r, Qt.AlignmentFlag.AlignCenter, "К")
-            return
-        g = QLinearGradient(r.topLeft(), r.bottomRight())
-        g.setColorAt(0, QColor("#5b8def"))
-        g.setColorAt(1, QColor("#7c4dff"))
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(g)
-        p.drawRoundedRect(r, 8, 8)
-        p.setFont(font(int(r.height() * 0.5), QFont.Weight.Bold))
-        p.setPen(QColor("#ffffff"))
-        p.drawText(r, Qt.AlignmentFlag.AlignCenter, "К")
-
-
 
 class TabBar(QFrame):
     """Вкладки алгоритмов + справа переключатель режима и «пилюля» с номером шага."""
@@ -108,9 +79,6 @@ class TabBar(QFrame):
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 12, 0)
         lay.setSpacing(0)
-        lay.addSpacing(10)
-        lay.addWidget(Logo(size=24))
-        lay.addSpacing(10)
         self.group = QButtonGroup(self)
         self.tabs: dict[str, QPushButton] = {}
         editor = theme.VARIANT == "editor"

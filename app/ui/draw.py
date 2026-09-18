@@ -20,15 +20,6 @@ def font(size: int, weight: int = QFont.Weight.Normal, mono: bool = False) -> QF
     return f
 
 
-_line_no = 0
-_line_y = -1e9
-
-
-def begin_lines():
-    """Сбрасывает нумерацию строк гуттера перед отрисовкой сцены."""
-    global _line_no, _line_y
-    _line_no, _line_y = 0, -1e9
-
 
 def ease(t: float) -> float:
     """Плавное замедление (ease-out cubic)."""
@@ -49,11 +40,7 @@ def with_alpha(c: QColor, a: float) -> QColor:
 def draw_background(p: QPainter, rect: QRectF, spacing: int = 24):
     p.fillRect(rect, theme.BG)
     if theme.VARIANT == "editor":
-        # гуттер с номерами строк вместо точечной сетки
-        p.fillRect(QRectF(0, 0, 34, rect.height()), theme.PANEL)
-        p.setPen(QPen(theme.BORDER_SOFT, 1))
-        p.drawLine(QPointF(34, 0), QPointF(34, rect.height()))
-        return
+        return  # ровный фон без сетки
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(theme.DOT)
     x = spacing
@@ -63,19 +50,6 @@ def draw_background(p: QPainter, rect: QRectF, spacing: int = 24):
             p.drawEllipse(QPointF(x, y), 1.2, 1.2)
             y += spacing
         x += spacing
-
-
-def _gutter_number(p: QPainter, y: float):
-    """Номер строки в гуттере слева (тема «editor»)."""
-    global _line_no, _line_y
-    if abs(y - _line_y) < 4:      # блоки на одной строке получают один номер
-        return
-    _line_no += 1
-    _line_y = y
-    p.setFont(font(11, QFont.Weight.Normal, mono=True))
-    p.setPen(theme.DIM)
-    p.drawText(QRectF(0, y - 13, 30, 18), Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-               str(_line_no))
 
 
 def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float = 12,
@@ -88,7 +62,6 @@ def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(rect, 6, 6)
         if title:
-            _gutter_number(p, rect.y() + 18)
             p.setFont(font(11, QFont.Weight.Normal, mono=True))
             p.setPen(theme.DIM)
             p.drawText(QRectF(rect.x() + 14, rect.y() + 8, rect.width() - 28, 18),
@@ -106,7 +79,6 @@ def draw_card(p: QPainter, rect: QRectF, title: str | None = None, radius: float
 
 def draw_label(p: QPainter, x: float, y: float, text: str, color: QColor | None = None, size: int = 11):
     if theme.VARIANT == "editor":
-        _gutter_number(p, y)
         p.setFont(font(11, QFont.Weight.Normal, mono=True))
         p.setPen(theme.DIM)
         p.drawText(QPointF(x, y), "// " + text.lower())
