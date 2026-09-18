@@ -8,15 +8,8 @@ from . import theme
 
 
 def font(size: int, weight: int = QFont.Weight.Normal, mono: bool = False) -> QFont:
-    if mono:
-        f = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
-        for fam in ("JetBrains Mono", "SF Mono", "Menlo", "Consolas"):
-            f.setFamily(fam)
-            if f.exactMatch():
-                break
-    else:
-        f = QFont()
-        f.setFamilies([".AppleSystemUIFont", "Segoe UI"])
+    """Все надписи — Unbounded; параметр mono оставлен для совместимости сцен."""
+    f = QFont(theme.FONT)
     f.setPixelSize(size)
     f.setWeight(weight)
     return f
@@ -90,7 +83,7 @@ def draw_cell(p: QPainter, rect: QRectF, text: str, state: tuple[QColor, QColor,
     p.drawRoundedRect(rect, radius, radius)
     if text:
         if size is None:
-            size = int(rect.height() * 0.5)
+            size = int(rect.height() * 0.42)
         if text == " ":
             text, fg = "␣", theme.MUTED
         draw_text(p, rect, text, size, with_alpha(fg, alpha), weight, mono=mono)

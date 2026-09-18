@@ -17,8 +17,8 @@ class Transport(QFrame):
         super().__init__(parent)
         self.setObjectName("Transport")
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(24, 14, 24, 16)
-        lay.setSpacing(10)
+        lay.setContentsMargins(22, 12, 22, 14)
+        lay.setSpacing(8)
 
         self.step_text = QLabel("Введите данные слева, затем нажмите «Шаг» или пробел")
         self.step_text.setObjectName("StepText")
@@ -47,10 +47,9 @@ class Transport(QFrame):
         self.btn_last.clicked.connect(self.last)
         self.btn_play.toggled.connect(self.play_toggled)
 
-        row.addSpacing(18)
-        self.counter = QLabel("Шаг 0 / 0")
+        self.counter = QLabel("")
         self.counter.setObjectName("StepCounter")
-        self.counter.setMinimumWidth(110)
+        row.addSpacing(14)
         row.addWidget(self.counter)
         row.addStretch(1)
 
@@ -83,7 +82,7 @@ class Transport(QFrame):
         self.speed.setValue(self.speed.value() + delta)
 
     def set_state(self, pos: int, total: int, text: str, error: bool = False):
-        self.counter.setText(f"Шаг {pos} / {total}")
+        self.counter.setText(f"{pos} / {total}")
         self.step_text.setObjectName("Error" if error else "StepText")
         self.step_text.style().unpolish(self.step_text)
         self.step_text.style().polish(self.step_text)

@@ -73,17 +73,17 @@ class CaesarScene(Scene):
             if wrapped_now:
                 # рисуем «хвост» до края и продолжение с другого края
                 edge_x = strip[-1].right() + 6 if shift > 0 else strip[0].left() - 6
-                draw_arrow(p, src_c, QPointF(edge_x, src_c.y()), with_alpha(theme.YELLOW, 0.5),
+                draw_arrow(p, src_c, QPointF(edge_x, src_c.y()), with_alpha(theme.WARM, 0.5),
                            curve=36)
                 start_x = strip[0].left() - 6 if shift > 0 else strip[-1].right() + 6
-                draw_arrow(p, QPointF(start_x, src_c.y()), dst_c, theme.YELLOW, curve=36)
+                draw_arrow(p, QPointF(start_x, src_c.y()), dst_c, theme.WARM, curve=36)
                 draw_text(p, QRectF(card.x(), card.y() + 30, card.width(), 20),
-                          f"переход через край: mod {n}", 13, theme.YELLOW, QFont.Weight.DemiBold)
+                          f"переход через край: mod {n}", 13, theme.WARM, QFont.Weight.DemiBold)
             else:
-                draw_arrow(p, src_c, dst_c, theme.YELLOW, curve=36)
+                draw_arrow(p, src_c, dst_c, theme.WARM, curve=36)
             # подпись сдвига над стрелкой
             mid_x = (src_c.x() + dst_c.x()) / 2 if not wrapped_now else card.center().x()
-            draw_badge(p, QPointF(mid_x, strip_y - 34), f"{sign}{abs(shift)}", theme.YELLOW, r=14)
+            draw_badge(p, QPointF(mid_x, strip_y - 34), f"{sign}{abs(shift)}", theme.WARM, r=14)
         elif d:
             draw_text(p, QRectF(card.x(), card.y() + 30, card.width(), 24),
                       "символ не входит в алфавит — сдвиг не применяется", 14, theme.MUTED)
@@ -100,7 +100,7 @@ class CaesarScene(Scene):
                 n = len(alphabet)
                 lines = [
                     (f"‘{src}’  →  позиция {pos_src}", theme.TEXT),
-                    (f"({pos_src} {sign} {abs(shift)}) mod {n}  =  {pos_dst}", theme.YELLOW),
+                    (f"({pos_src} {sign} {abs(shift)}) mod {n}  =  {pos_dst}", theme.WARM),
                     (f"позиция {pos_dst}  →  ‘{dst}’", theme.GREEN),
                 ]
             else:

@@ -1,11 +1,11 @@
-"""Левая панель: выбор алгоритма, входные данные, настройки."""
+"""Левая панель в стиле дерева проекта: секции с «▾», строки-элементы, поля ввода."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QButtonGroup,
-                               QLineEdit, QSpinBox, QStackedWidget, QWidget, QCheckBox, QRadioButton,
+                               QLineEdit, QSpinBox, QWidget, QCheckBox, QRadioButton,
                                QSizePolicy, QScrollArea)
 
 
@@ -23,44 +23,91 @@ class Params:
 
 
 ALGOS = [
-    ("caesar", "1", "Шифр Цезаря", "сдвиг букв по алфавиту"),
-    ("xor", "2", "XOR", "побитовое сложение по модулю 2"),
-    ("transposition", "3", "Перестановка", "столбцовая, по ключевому слову"),
+    ("caesar", "Шифр Цезаря"),
+    ("xor", "XOR"),
+    ("transposition", "Перестановка"),
 ]
 
 HOTKEYS = [
     ("Пробел / →", "шаг вперёд"),
     ("←", "шаг назад"),
     ("Home / End", "в начало / в конец"),
-    ("Enter", "авто-воспроизведение"),
+    ("Enter", "авто-режим"),
     ("+ / −", "быстрее / медленнее"),
-    ("1 · 2 · 3", "выбор алгоритма"),
-    ("E / D", "шифровать / дешифровать"),
+    ("1 · 2 · 3", "алгоритм"),
+    ("E / D", "шифр / дешифр"),
     ("M", "крупные шаги"),
     ("F", "полный экран"),
-    ("Esc", "выйти из поля ввода"),
+    ("Esc", "выйти из поля"),
 ]
 
 
-class AutoStack(QStackedWidget):
-    """QStackedWidget, высота которого равна высоте текущей страницы, а не максимальной."""
+class PageSwitch(QWidget):
+    """Контейнер страниц: видима только одна, остальные скрыты и не занимают места."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.currentChanged.connect(lambda _: self.updateGeometry())
+        self._lay = QVBoxLayout(self)
+        self._lay.setContentsMargins(0, 0, 0, 0)
+        self._lay.setSpacing(0)
+        self._pages: list[QWidget] = []
 
-    def sizeHint(self):
-        w = self.currentWidget()
-        return w.sizeHint() if w else super().sizeHint()
+    def addWidget(self, w: QWidget):
+        self._pages.append(w)
+        self._lay.addWidget(w)
+        w.setVisible(len(self._pages) == 1)
 
-    def minimumSizeHint(self):
-        w = self.currentWidget()
-        return w.minimumSizeHint() if w else super().minimumSizeHint()
+    def setCurrentIndex(self, idx: int):
+        for i, w in enumerate(self._pages):
+            w.setVisible(i == idx)
 
 
-def section(text: str) -> QLabel:
+class Section(QWidget):
+    """Секция дерева: заголовок «▾ Название» + содержимое с отступом, линия-разделитель снизу."""
+
+    def __init__(self, title: str, parent=None):
+        super().__init__(parent)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        head = QLabel(f"▾   {title}")
+        head.setObjectName("SectionHead")
+        head.setContentsMargins(12, 10, 12, 8)
+        lay.addWidget(head)
+        self.body = QWidget()
+        self.body_lay = QVBoxLayout(self.body)
+        self.body_lay.setContentsMargins(14, 0, 12, 12)
+        self.body_lay.setSpacing(6)
+        lay.addWidget(self.body)
+        line = QFrame()
+        line.setObjectName("SectionLine")
+        lay.addWidget(line)
+
+    def add(self, w):
+        if isinstance(w, QWidget):
+            self.body_lay.addWidget(w)
+        else:
+            self.body_lay.addLayout(w)
+
+
+def item_button(text: str, icon: str = "▢") -> QPushButton:
+    b = QPushButton(f"{icon}   {text}")
+    b.setObjectName("Item")
+    b.setCheckable(True)
+    b.setCursor(Qt.CursorShape.PointingHandCursor)
+    return b
+
+
+def hint(text: str) -> QLabel:
+    h = QLabel(text)
+    h.setObjectName("Hint")
+    h.setWordWrap(True)
+    return h
+
+
+def field_label(text: str) -> QLabel:
     lab = QLabel(text)
-    lab.setObjectName("Section")
+    lab.setObjectName("FieldLabel")
     return lab
 
 
@@ -70,102 +117,103 @@ class Sidebar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Sidebar")
-        self.setFixedWidth(320)
+        self.setFixedWidth(250)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # заголовок панели, как «Page Code ⓘ»
+        head = QWidget()
+        hl = QHBoxLayout(head)
+        hl.setContentsMargins(14, 12, 12, 10)
+        title = QLabel("Параметры")
+        title.setObjectName("PanelTitle")
+        info = QLabel("ⓘ")
+        info.setObjectName("Hint")
+        info.setToolTip("Всё пересчитывается автоматически при вводе")
+        hl.addWidget(title)
+        hl.addStretch(1)
+        hl.addWidget(info)
+        outer.addWidget(head)
+        line = QFrame()
+        line.setObjectName("SectionLine")
+        outer.addWidget(line)
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         inner = QWidget()
         scroll.setWidget(inner)
-        outer.addWidget(scroll)
+        outer.addWidget(scroll, 1)
         lay = QVBoxLayout(inner)
-        lay.setContentsMargins(20, 22, 20, 20)
-        lay.setSpacing(10)
-
-        title = QLabel("Криптовизор")
-        title.setObjectName("AppTitle")
-        sub = QLabel("пошаговая визуализация шифров")
-        sub.setObjectName("AppSubtitle")
-        lay.addWidget(title)
-        lay.addWidget(sub)
-        lay.addSpacing(8)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
 
         # ── Алгоритм ──
-        lay.addWidget(section("Алгоритм"))
+        sec = Section("Алгоритм")
         self.algo_group = QButtonGroup(self)
         self.algo_buttons: dict[str, QPushButton] = {}
-        for key, num, name, desc in ALGOS:
-            btn = QPushButton(f"{num}   {name}")
-            btn.setObjectName("Algo")
-            btn.setCheckable(True)
-            btn.setToolTip(desc)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        for key, name in ALGOS:
+            btn = item_button(name, "▢")
             self.algo_group.addButton(btn)
             self.algo_buttons[key] = btn
-            lay.addWidget(btn)
+            sec.add(btn)
         self.algo_buttons["caesar"].setChecked(True)
         self.algo_group.buttonClicked.connect(self._on_algo)
+        lay.addWidget(sec)
 
         # ── Режим ──
-        lay.addWidget(section("Режим"))
-        mode_row = QHBoxLayout()
-        mode_row.setSpacing(6)
-        self.btn_enc = QPushButton("Шифровать")
-        self.btn_dec = QPushButton("Дешифровать")
-        for b in (self.btn_enc, self.btn_dec):
-            b.setObjectName("Seg")
-            b.setCheckable(True)
-            b.setCursor(Qt.CursorShape.PointingHandCursor)
-            mode_row.addWidget(b)
+        sec = Section("Режим")
+        self.btn_enc = item_button("Шифровать", "◆")
+        self.btn_dec = item_button("Дешифровать", "◇")
         self.mode_group = QButtonGroup(self)
         self.mode_group.addButton(self.btn_enc)
         self.mode_group.addButton(self.btn_dec)
         self.btn_enc.setChecked(True)
         self.mode_group.buttonClicked.connect(lambda _: self._emit())
-        lay.addLayout(mode_row)
+        sec.add(self.btn_enc)
+        sec.add(self.btn_dec)
+        lay.addWidget(sec)
 
         # ── Текст ──
-        lay.addWidget(section("Текст"))
+        sec = Section("Текст")
         self.text = QLineEdit("Привет, мир!")
         self.text.setMaxLength(40)
         self.text.setPlaceholderText("до 40 символов")
         self.text.textChanged.connect(self._emit)
-        lay.addWidget(self.text)
-        self.text_hint = QLabel("")
-        self.text_hint.setObjectName("Hint")
-        self.text_hint.setWordWrap(True)
-        lay.addWidget(self.text_hint)
+        sec.add(self.text)
+        self.text_hint = hint("")
+        sec.add(self.text_hint)
+        lay.addWidget(sec)
 
-        # ── Ключ (зависит от алгоритма) ──
-        lay.addWidget(section("Ключ"))
-        self.key_stack = AutoStack()
-        self.key_stack.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        lay.addWidget(self.key_stack)
+        # ── Ключ ──
+        sec = Section("Ключ")
+        self.key_stack = PageSwitch()
+        sec.add(self.key_stack)
+        lay.addWidget(sec)
 
         # Цезарь
         w = QWidget()
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(6)
         row = QHBoxLayout()
-        row.addWidget(QLabel("Сдвиг"))
+        row.addWidget(field_label("Сдвиг"))
         self.caesar_shift = QSpinBox()
         self.caesar_shift.setRange(-32, 32)
         self.caesar_shift.setValue(3)
         self.caesar_shift.valueChanged.connect(self._emit)
         row.addWidget(self.caesar_shift, 1)
         v.addLayout(row)
-        h = QLabel("Латиница — 26 букв, кириллица — 33 (с Ё). Регистр сохраняется.")
-        h.setObjectName("Hint")
-        h.setWordWrap(True)
-        v.addWidget(h)
+        v.addWidget(hint("Латиница — 26 букв, кириллица — 33 (с Ё). Регистр сохраняется."))
         self.key_stack.addWidget(w)
 
         # XOR
         w = QWidget()
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(6)
         self.xor_num_radio = QRadioButton("Число 0–255")
         self.xor_str_radio = QRadioButton("Строка (циклически)")
         self.xor_str_radio.setChecked(True)
@@ -178,11 +226,7 @@ class Sidebar(QFrame):
         self.xor_key_str = QLineEdit("ключ")
         self.xor_key_str.setMaxLength(16)
         v.addWidget(self.xor_key_str)
-        self.xor_hint = QLabel("Текст кодируется в CP1251: 1 символ = 1 байт = 8 бит.\n"
-                               "В режиме дешифрования можно ввести hex: «4A 2F …».")
-        self.xor_hint.setObjectName("Hint")
-        self.xor_hint.setWordWrap(True)
-        v.addWidget(self.xor_hint)
+        v.addWidget(hint("CP1251: 1 символ = 1 байт. При дешифровании можно ввести hex «4A 2F …»."))
         self.xor_num_radio.toggled.connect(self._sync_xor)
         self.xor_key_num.valueChanged.connect(self._emit)
         self.xor_key_str.textChanged.connect(self._emit)
@@ -192,38 +236,41 @@ class Sidebar(QFrame):
         w = QWidget()
         v = QVBoxLayout(w)
         v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(6)
         self.trans_key = QLineEdit("КЛЮЧ")
         self.trans_key.setMaxLength(10)
         self.trans_key.setPlaceholderText("слово или цифры, напр. 3142")
         self.trans_key.textChanged.connect(self._emit)
         v.addWidget(self.trans_key)
-        h = QLabel("Слово: столбцы нумеруются по алфавиту букв ключа.\n"
-                   "Цифры: явный порядок чтения столбцов.")
-        h.setObjectName("Hint")
-        h.setWordWrap(True)
-        v.addWidget(h)
+        v.addWidget(hint("Слово — столбцы нумеруются по алфавиту букв ключа. Цифры — явный порядок чтения."))
         self.key_stack.addWidget(w)
 
         # ── Показ ──
-        lay.addWidget(section("Показ"))
-        self.major = QCheckBox("Крупные шаги (по символу / столбцу)")
+        sec = Section("Показ")
+        self.major = QCheckBox("Крупные шаги")
+        self.major.setToolTip("По символу / байту / столбцу вместо бита и ячейки (M)")
         self.major.toggled.connect(self._emit)
-        lay.addWidget(self.major)
+        sec.add(self.major)
+        lay.addWidget(sec)
 
-        # ── Горячие клавиши ──
-        lay.addWidget(section("Клавиши"))
+        # ── Клавиши ──
+        self.keys_section = Section("Клавиши")
         for keys, desc in HOTKEYS:
             row = QHBoxLayout()
+            row.setSpacing(6)
             k = QLabel(keys)
             k.setObjectName("Kbd")
-            k.setFixedWidth(100)
+            k.setFixedWidth(84)
             dsc = QLabel(desc)
-            dsc.setObjectName("Hint")
+            dsc.setObjectName("KbdDesc")
+            dsc.setWordWrap(True)
             row.addWidget(k)
             row.addWidget(dsc, 1)
-            lay.addLayout(row)
+            self.keys_section.add(row)
+        lay.addWidget(self.keys_section)
         lay.addStretch(1)
 
+        self._sync_xor()
         self._on_algo(None)
 
     # ── события ──
@@ -257,6 +304,9 @@ class Sidebar(QFrame):
 
     def toggle_major(self):
         self.major.setChecked(not self.major.isChecked())
+
+    def toggle_keys(self):
+        self.keys_section.setVisible(not self.keys_section.isVisible())
 
     def set_text_hint(self, text: str):
         self.text_hint.setText(text)

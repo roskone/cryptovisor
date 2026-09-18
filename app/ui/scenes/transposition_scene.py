@@ -85,7 +85,7 @@ class TranspositionScene(Scene):
             if rank_visible:
                 a = t if is_active else 1.0
                 draw_badge(p, QPointF(hr.center().x(), hr.bottom() - 4),
-                           str(ranks[c] + 1), with_alpha(theme.YELLOW, a), r=12)
+                           str(ranks[c] + 1), with_alpha(theme.WARM, a), r=12)
         # подсветка активного столбца при чтении
         if phase in ("read",) and active_col is not None:
             band = cell_rect(0, active_col).united(cell_rect(rows - 1, active_col)).adjusted(-5, -5, 5, 5)
@@ -94,8 +94,8 @@ class TranspositionScene(Scene):
             p.drawRoundedRect(band, 10, 10)
         if phase == "fill" and mode == "dec" and active_col is not None:
             band = cell_rect(0, active_col).united(cell_rect(rows - 1, active_col)).adjusted(-5, -5, 5, 5)
-            p.setPen(QPen(with_alpha(theme.YELLOW, 0.5), 1))
-            p.setBrush(with_alpha(theme.YELLOW, 0.06))
+            p.setPen(QPen(with_alpha(theme.WARM, 0.5), 1))
+            p.setBrush(with_alpha(theme.WARM, 0.06))
             p.drawRoundedRect(band, 10, 10)
 
         out = d["output"] if d else ""
@@ -134,10 +134,10 @@ class TranspositionScene(Scene):
             active = active_col == c and phase in ("order", "read", "fill")
             if active:
                 p.setPen(Qt.PenStyle.NoPen)
-                p.setBrush(with_alpha(theme.YELLOW, 0.12))
+                p.setBrush(with_alpha(theme.WARM, 0.12))
                 p.drawRoundedRect(QRectF(sx - 8, ry - 3, side.width() - 20, 32), 8, 8)
             col = theme.TEXT if visible else theme.MUTED
-            draw_badge(p, QPointF(sx + 12, ry + 13), str(k + 1), theme.YELLOW if visible else theme.BORDER,
+            draw_badge(p, QPointF(sx + 12, ry + 13), str(k + 1), theme.WARM if visible else theme.BORDER,
                        theme.BG if visible else theme.MUTED, r=12)
             draw_text(p, QRectF(sx + 34, ry, side.width() - 60, 26),
                       f"столбец ‘{headers[c]}’  (№{c + 1} слева)" if visible else "?", 15, col,

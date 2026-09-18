@@ -80,7 +80,7 @@ class XorScene(Scene):
             band = QRectF(col.x() - 6, rows_y[0] - 8, col.width() + 12,
                           rows_y[2] + rows_rects[2][0].height() - rows_y[0] + 16)
             p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(with_alpha(theme.YELLOW, 0.08))
+            p.setBrush(with_alpha(theme.WARM, 0.08))
             p.drawRoundedRect(band, 10, 10)
 
         def row_label(k, title, value_txt, col):
@@ -88,7 +88,7 @@ class XorScene(Scene):
             draw_text(p, QRectF(r.x(), r.y(), r.width(), r.height() / 2), title, 12, theme.MUTED,
                       QFont.Weight.Bold, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             draw_text(p, QRectF(r.x(), r.y() + r.height() / 2, r.width(), r.height() / 2), value_txt,
-                      15, col, QFont.Weight.DemiBold, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                      13, col, QFont.Weight.DemiBold, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                       mono=True)
 
         if d:
@@ -125,7 +125,7 @@ class XorScene(Scene):
         # операторы между строками
         op_x = bits_x - 32
         draw_text(p, QRectF(op_x - 14, rows_y[0] + rows_rects[0][0].height() / 2 + row_gap / 2 - 14, 28, 28),
-                  "⊕", 22, theme.YELLOW, QFont.Weight.Bold)
+                  "⊕", 22, theme.WARM, QFont.Weight.Bold)
         draw_text(p, QRectF(op_x - 14, rows_y[1] + rows_rects[1][0].height() / 2 + row_gap / 2 - 14, 28, 28),
                   "=", 22, theme.GREEN, QFont.Weight.Bold)
         # разделитель над результатом
@@ -134,7 +134,7 @@ class XorScene(Scene):
         p.drawLine(QPointF(bits_x, sep_y), QPointF(rows_rects[2][-1].right(), sep_y))
         # номера битов
         for i, r in enumerate(rows_rects[2]):
-            draw_text(p, QRectF(r.x(), r.bottom() + 4, r.width(), 14), f"2{superscript(7 - i)}", 10, theme.MUTED)
+            draw_text(p, QRectF(r.x(), r.bottom() + 4, r.width(), 14), f"бит {7 - i}", 9, theme.DIM)
 
         # таблица истинности
         table = [(0, 0, 0), (0, 1, 1), (1, 0, 1), (1, 1, 0)]
@@ -147,8 +147,8 @@ class XorScene(Scene):
             active = d is not None and (tbits[bit], kbits[bit]) == (a, b)
             rr = QRectF(tx - 6, ry - 4, truth.width() - 24, 40)
             if active:
-                p.setPen(QPen(theme.YELLOW, 1))
-                p.setBrush(with_alpha(theme.YELLOW, 0.12))
+                p.setPen(QPen(theme.WARM, 1))
+                p.setBrush(with_alpha(theme.WARM, 0.12))
                 p.drawRoundedRect(rr, 8, 8)
             col = theme.TEXT if active else theme.MUTED
             draw_text(p, QRectF(tx, ry, 60, 32), str(a), 20, col, QFont.Weight.DemiBold, mono=True)
@@ -184,9 +184,3 @@ class XorScene(Scene):
                   int(h * 0.24), with_alpha(theme.MUTED if state is not theme.CELL_CURRENT else fg, alpha),
                   mono=True)
 
-
-_SUP = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
-
-
-def superscript(n: int) -> str:
-    return str(n).translate(_SUP)

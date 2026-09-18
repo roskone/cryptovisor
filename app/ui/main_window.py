@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, Q
 
 from .sidebar import Sidebar, Params
 from .transport import Transport
+from .chrome import Backdrop, GlassPanel, Rail, TabBar
 from .scenes.caesar_scene import CaesarScene
 from .scenes.xor_scene import XorScene
 from .scenes.transposition_scene import TranspositionScene
@@ -25,18 +26,26 @@ class MainWindow(QMainWindow):
         self.pos = 0
         self.major_only = False
 
-        central = QWidget()
-        self.setCentralWidget(central)
-        root = QHBoxLayout(central)
+        backdrop = Backdrop()
+        self.setCentralWidget(backdrop)
+        outer = QVBoxLayout(backdrop)
+        outer.setContentsMargins(12, 12, 12, 12)
+        panel = GlassPanel()
+        outer.addWidget(panel)
+        root = QHBoxLayout(panel)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
+        self.rail = Rail()
+        root.addWidget(self.rail)
         self.sidebar = Sidebar()
         root.addWidget(self.sidebar)
 
         right = QVBoxLayout()
         right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(0)
+        self.tabbar = TabBar()
+        right.addWidget(self.tabbar)
         self.scenes = {
             "caesar": CaesarScene(),
             "xor": XorScene(),
@@ -56,6 +65,10 @@ class MainWindow(QMainWindow):
         self.timer.setInterval(self.transport.interval_ms())
 
         self.sidebar.changed.connect(self.rebuild)
+        self.tabbar.algo_selected.connect(self.sidebar.set_algo)
+        self.tabbar.mode_selected.connect(self.sidebar.set_decrypt)
+        self.rail.keys.connect(self.sidebar.toggle_keys)
+        self.rail.fullscreen.connect(self.toggle_fullscreen)
         self.transport.first.connect(lambda: self.go_to(0))
         self.transport.prev.connect(self.step_back)
         self.transport.next.connect(self.step_forward)
@@ -106,6 +119,7 @@ class MainWindow(QMainWindow):
         self.set_playing(False)
         prm: Params = self.sidebar.params()
         self.major_only = prm.major_steps
+        self.tabbar.sync(prm.algo, prm.decrypt)
         scene = self.scenes[prm.algo]
         self.stack.setCurrentWidget(scene)
         self.sidebar.set_text_hint("")
@@ -115,6 +129,7 @@ class MainWindow(QMainWindow):
             self.steps = []
             scene.set_context(None)
             self.transport.set_state(0, 0, str(e), error=True)
+            self.tabbar.set_step(0, 0)
             return
         scene.set_context(ctx)
         self.pos = 0
@@ -153,6 +168,7 @@ class MainWindow(QMainWindow):
             step = self.steps[self.pos - 1]
             scene.set_step(step, animate=animate)
             self.transport.set_state(self.pos, len(self.steps), step.text)
+        self.tabbar.set_step(self.pos, len(self.steps))
         if self.pos >= len(self.steps):
             self.set_playing(False)
 
