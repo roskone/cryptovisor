@@ -38,3 +38,31 @@
 | M | крупные шаги (по символу / столбцу) |
 | F | полный экран |
 | Esc | выйти из поля ввода / из полного экрана |
+
+## Установщик для Windows
+
+Собирается на Windows (или в GitHub Actions) — на macOS получить `.exe` нельзя.
+
+**Вариант 1 — на любом ПК с Windows.** Нужны Python 3.11+ и [Inno Setup 6](https://jrsoftware.org/isdl.php).
+Скопируй папку проекта (без `.venv`) и запусти из её корня:
+
+```bat
+packaging\windows\build.bat
+```
+
+Результат — `dist\CryptoVisor-Setup-1.0.0.exe`: мастер установки на русском, ярлык в меню «Пуск»
+и на рабочем столе (по желанию), удаление через «Программы и компоненты». Ставится без прав
+администратора. Без Inno Setup скрипт остановится после PyInstaller и оставит портативную
+версию `dist\CryptoVisor\CryptoVisor.exe` — её можно просто скопировать на флешку.
+
+**Вариант 2 — GitHub Actions.** Запушь репозиторий на GitHub; workflow
+`.github/workflows/windows-installer.yml` собирает установщик при пуше тега `v*`
+(и прикладывает его к релизу) или вручную через «Run workflow». Готовый `.exe` — в артефактах.
+
+**Что внутри сборки:** `packaging/cryptovisor.spec` (PyInstaller, шрифты и иконка в комплекте,
+лишние модули Qt исключены), `packaging/windows/setup.iss` (Inno Setup),
+`packaging/windows/version_info.txt` (метаданные exe), `packaging/make_icon.py` (генерация иконки).
+Версия задаётся в `app/version.py`, `setup.iss` и `version_info.txt`.
+
+Первый запуск: SmartScreen может предупредить о неизвестном издателе (сборка не подписана
+сертификатом) — «Подробнее → Выполнить в любом случае».
